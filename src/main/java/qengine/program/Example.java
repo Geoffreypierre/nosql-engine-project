@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Logger;
 
 public final class Example {
 
 	private static final String WORKING_DIR = "data/";
 	private static final String SAMPLE_DATA_FILE = WORKING_DIR + "sample_data.nt";
 	private static final String SAMPLE_QUERY_FILE = WORKING_DIR + "sample_query.queryset";
+	private static final Logger logger = Logger.getLogger("QEngine");
 
 	public static void main(String[] args) throws IOException {
 		/*
@@ -38,12 +40,13 @@ public final class Example {
 		List<StarQuery> starQueries = parseSparQLQueries(SAMPLE_QUERY_FILE);
 
 		/*
-		 * Exemple d'utilisation de l'évaluation de requetes par Integraal avec les objets parsés
+		 * Exemple d'utilisation de l'évaluation de requetes par Integraal avec les
+		 * objets parsés
 		 */
 		System.out.println("\n=== Executing the queries with Integraal ===");
 		FactBase factBase = new SimpleInMemoryGraphStore();
 		for (RDFAtom atom : rdfAtoms) {
-			factBase.add(atom);  // Stocker chaque RDFAtom dans le store
+			factBase.add(atom); // Stocker chaque RDFAtom dans le store
 		}
 
 		// Exécuter les requêtes sur le store
@@ -66,7 +69,7 @@ public final class Example {
 			int count = 0;
 			while (rdfAtomParser.hasNext()) {
 				RDFAtom atom = rdfAtomParser.next();
-				rdfAtoms.add(atom);  // Stocker l'atome dans la collection
+				rdfAtoms.add(atom); // Stocker l'atome dans la collection
 				System.out.println("RDF Atom #" + (++count) + ": " + atom);
 			}
 			System.out.println("Total RDF Atoms parsed: " + count);
@@ -89,16 +92,16 @@ public final class Example {
 			while (queryParser.hasNext()) {
 				Query query = queryParser.next();
 				if (query instanceof StarQuery starQuery) {
-					starQueries.add(starQuery);  // Stocker la requête dans la collection
-					System.out.println("Star Query #" + (++queryCount) + ":");
-					System.out.println("  Central Variable: " + starQuery.getCentralVariable().label());
-					System.out.println("  RDF Atoms:");
-					starQuery.getRdfAtoms().forEach(atom -> System.out.println("    " + atom));
+					starQueries.add(starQuery); // Stocker la requête dans la collection
+					logger.info("Star Query #" + (++queryCount) + ":");
+					logger.info("  Central Variable: " + starQuery.getCentralVariable().label());
+					logger.info("  RDF Atoms:");
+					starQuery.getRdfAtoms().forEach(atom -> logger.info("    " + atom));
 				} else {
-					System.err.println("Requête inconnue ignorée.");
+					logger.warning("Requête inconnue ignorée.");
 				}
 			}
-			System.out.println("Total Queries parsed: " + starQueries.size());
+			logger.info("Total Queries parsed: " + starQueries.size());
 		}
 		return starQueries;
 	}
@@ -114,15 +117,15 @@ public final class Example {
 		FOQueryEvaluator<FOFormula> evaluator = GenericFOQueryEvaluator.defaultInstance(); // Créer un évaluateur
 		Iterator<Substitution> queryResults = evaluator.evaluate(foQuery, factBase); // Évaluer la requête
 
-		System.out.printf("Execution of  %s:%n", starQuery);
-		System.out.println("Answers:");
+		logger.info(String.format("Execution of  %s:%n", starQuery));
+		logger.info("Answers:");
 		if (!queryResults.hasNext()) {
-			System.out.println("No answer.");
+			logger.info("No answer.");
 		}
 		while (queryResults.hasNext()) {
 			Substitution result = queryResults.next();
-			System.out.println(result); // Afficher chaque réponse
+			logger.info(result.toString()); // Afficher chaque réponse
 		}
-		System.out.println();
+		logger.info("");
 	}
 }
