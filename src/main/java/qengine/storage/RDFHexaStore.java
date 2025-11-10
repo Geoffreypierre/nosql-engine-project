@@ -1,6 +1,8 @@
 package qengine.storage;
 
 import fr.boreal.model.logicalElements.api.*;
+import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
+
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import qengine.model.RDFAtom;
@@ -225,21 +227,21 @@ public class RDFHexaStore implements RDFStorage {
     private void addPredicateSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new Substitution(new Term(decoded), variable));
+            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
         }
     }
 
     private void addObjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new Substitution(new Term(decoded), variable));
+            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
         }
     }
 
     private void addSubjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new Substitution(new Term(decoded), variable));
+            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
         }
     }
 
@@ -247,10 +249,10 @@ public class RDFHexaStore implements RDFStorage {
             List<Substitution> res) {
         for (Map.Entry<Integer, List<Integer>> entry : entries.entrySet()) {
             String decodedFirst = termEncoder.decode(entry.getKey());
-            res.add(new Substitution(new Term(decodedFirst), firstVariable));
+            res.add(new SubstitutionImpl(new TermImpl(decodedFirst), firstVariable));
             for (Integer secondEncoded : entry.getValue()) {
                 String decodedSecond = termEncoder.decode(secondEncoded);
-                res.add(new Substitution(new Term(decodedSecond), secondVariable));
+                res.add(new SubstitutionImpl(new TermImpl(decodedSecond), secondVariable));
             }
         }
     }
@@ -263,5 +265,20 @@ public class RDFHexaStore implements RDFStorage {
     @Override
     public Collection<Atom> getAtoms() {
         throw new NotImplementedException();
+    }
+
+    private static class TermImpl implements Term {
+
+        private final String label;
+
+        public TermImpl(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String label() {
+            return label;
+        }
+
     }
 }
