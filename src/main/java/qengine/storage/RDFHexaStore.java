@@ -6,33 +6,38 @@ import org.eclipse.rdf4j.rio.RDFFormat;
 import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
+import qengine.util.Result;
+import qengine.util.SearchTree;
 import qengine.util.TermEncoder;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Implémentation d'un HexaStore pour stocker des RDFAtom.
  * Cette classe utilise six index pour optimiser les recherches.
- * Les index sont basés sur les combinaisons (Sujet, Prédicat, Objet), (Sujet, Objet, Prédicat),
- * (Prédicat, Sujet, Objet), (Prédicat, Objet, Sujet), (Objet, Sujet, Prédicat) et (Objet, Prédicat, Sujet).
+ * Les index sont basés sur les combinaisons (Sujet, Prédicat, Objet), (Sujet,
+ * Objet, Prédicat),
+ * (Prédicat, Sujet, Objet), (Prédicat, Objet, Sujet), (Objet, Sujet, Prédicat)
+ * et (Objet, Prédicat, Sujet).
  */
 public class RDFHexaStore implements RDFStorage {
 
     private HashMap<String, Integer> convertedTerms;
     private TermEncoder termEncoder;
 
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> S_O_P;
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> S_P_O;
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> P_S_O;
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> P_O_S;
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> O_P_S;
-    private HashMap<Integer, HashMap<Integer, List<Integer>>> O_S_P;
+    private SearchTree<Integer> S_O_P;
+    private SearchTree<Integer> S_P_O;
+    private SearchTree<Integer> P_S_O;
+    private SearchTree<Integer> P_O_S;
+    private SearchTree<Integer> O_P_S;
+    private SearchTree<Integer> O_S_P;
 
-    private final int SUBJECT_IS_PRESENT = 4;
-    private final int PREDICAT_IS_PRESENT = 2;
-    private final int OBJECT_IS_PRESENT = 1;
+    private static final int SUBJECT_IS_PRESENT = 4;
+    private static final int PREDICAT_IS_PRESENT = 2;
+    private static final int OBJECT_IS_PRESENT = 1;
 
     private void loadTerm(Set<String> rawTerms) {
         for (String rawTerm : rawTerms) {
@@ -100,41 +105,41 @@ public class RDFHexaStore implements RDFStorage {
         Term object = atom.getTripleObject();
         int res = 0;
         if (!subject.isVariable()) {
-            res+= SUBJECT_IS_PRESENT;
+            res += SUBJECT_IS_PRESENT;
         }
         if (!predicate.isVariable()) {
-            res+= PREDICAT_IS_PRESENT;
+            res += PREDICAT_IS_PRESENT;
         }
         if (!object.isVariable()) {
-            res+= OBJECT_IS_PRESENT;
+            res += OBJECT_IS_PRESENT;
         }
         return res;
     }
 
-    public HashMap<Integer, HashMap<Integer, List<Integer>>> selectOptimalSearchTree(int state) {
+    public Result<SearchTree<Integer>> selectOptimalSearchTree(int state) {
 
         if ((state | SUBJECT_IS_PRESENT) > 0) {
             if ((state | OBJECT_IS_PRESENT) > 0) {
-                return S_O_P;
+                return Result.success(S_O_P);
             } else {
-                return S_P_O;
+                return Result.success(S_P_O);
             }
         }
         if ((state | PREDICAT_IS_PRESENT) > 0) {
             if ((state | OBJECT_IS_PRESENT) > 0) {
-                return P_O_S;
+                return Result.success(P_O_S);
             } else {
-                return P_S_O;
+                return Result.success(P_S_O);
             }
         }
         if ((state | OBJECT_IS_PRESENT) > 0) {
             if ((state | SUBJECT_IS_PRESENT) > 0) {
-                return O_S_P;
+                return Result.success(O_S_P);
             } else {
-                return O_P_S;
+                return Result.success(O_P_S);
             }
         }
-        return null;
+        return Result.failure();
     }
 
     @Override
@@ -144,33 +149,110 @@ public class RDFHexaStore implements RDFStorage {
 
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
-
         int state = getAvailableTerms(atom);
-        var optimalTree = selectOptimalSearchTree(state);
+        Result<SearchTree<Integer>> treeResult = selectOptimalSearchTree(state);
+        if (treeResult.failed()) {
+            Logger.getLogger("system").warning("Failed to select optimal search tree");
+            return Collections.emptyIterator();
+        }
 
+        SearchTree<Integer> optimalTree = treeResult.value();
+
+        if ((state & SUBJECT_IS_PRESENT) != 0) {
+            return matchWithSubject(atom, state, optimalTree);
+        }
+        if ((state & PREDICAT_IS_PRESENT) != 0) {
+            return matchWithPredicate(atom, state, optimalTree);
+        }
+        if ((state & OBJECT_IS_PRESENT) != 0) {
+            return matchWithObject(atom, state, optimalTree);
+        }
+
+        return Collections.emptyIterator();
+    }
+
+    private Iterator<Substitution> matchWithSubject(RDFAtom atom, int state, SearchTree<Integer> tree) {
+        int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
         List<Substitution> res = new ArrayList<>();
 
-        // S_P_O ou S_O_P //
-        if ((state | SUBJECT_IS_PRESENT) > 0) {
-            int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-            if ((state | OBJECT_IS_PRESENT) > 0) {
-                int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-                for (Integer encodedPredicat : optimalTree.get(convertedSubject).get(convertedObject)) {}
-                return res.iterator();
-            }
-            if ((state | PREDICAT_IS_PRESENT) > 0) {
-                int convertedPredicat = convertedTerms.get(atom.getTriplePredicate().label());
-                for (Integer encodedObject : optimalTree.get(convertedSubject).get(convertedPredicat)) {}
-                return res.iterator();
-            }
-
-            var predicats = optimalTree.get(convertedSubject);
-            for (var predicat : predicats.entrySet()) {
-                for (Integer object : predicat.getValue()) {}
-            }
-            return res.iterator();
+        if ((state & OBJECT_IS_PRESENT) != 0) {
+            int convertedObject = convertedTerms.get(atom.getTripleObject().label());
+            addPredicateSubstitutions(tree.get(convertedSubject).get(convertedObject), atom.getTriplePredicate(), res);
+        } else if ((state & PREDICAT_IS_PRESENT) != 0) {
+            int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
+            addObjectSubstitutions(tree.get(convertedSubject).get(convertedPredicate), atom.getTripleObject(), res);
+        } else {
+            addAllSubstitutions(tree.get(convertedSubject), atom.getTriplePredicate(), atom.getTripleObject(), res);
         }
-        return null;
+
+        return res.iterator();
+    }
+
+    private Iterator<Substitution> matchWithPredicate(RDFAtom atom, int state, SearchTree<Integer> tree) {
+        int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
+        List<Substitution> res = new ArrayList<>();
+
+        if ((state & SUBJECT_IS_PRESENT) != 0) {
+            int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
+            addObjectSubstitutions(tree.get(convertedPredicate).get(convertedSubject), atom.getTripleObject(), res);
+        } else if ((state & OBJECT_IS_PRESENT) != 0) {
+            int convertedObject = convertedTerms.get(atom.getTripleObject().label());
+            addSubjectSubstitutions(tree.get(convertedPredicate).get(convertedObject), atom.getTripleSubject(), res);
+        } else {
+            addAllSubstitutions(tree.get(convertedPredicate), atom.getTripleSubject(), atom.getTripleObject(), res);
+        }
+
+        return res.iterator();
+    }
+
+    private Iterator<Substitution> matchWithObject(RDFAtom atom, int state, SearchTree<Integer> tree) {
+        int convertedObject = convertedTerms.get(atom.getTripleObject().label());
+        List<Substitution> res = new ArrayList<>();
+
+        if ((state & SUBJECT_IS_PRESENT) != 0) {
+            int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
+            addPredicateSubstitutions(tree.get(convertedObject).get(convertedSubject), atom.getTriplePredicate(), res);
+        } else if ((state & PREDICAT_IS_PRESENT) != 0) {
+            int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
+            addSubjectSubstitutions(tree.get(convertedObject).get(convertedPredicate), atom.getTripleSubject(), res);
+        } else {
+            addAllSubstitutions(tree.get(convertedObject), atom.getTriplePredicate(), atom.getTripleObject(), res);
+        }
+
+        return res.iterator();
+    }
+
+    private void addPredicateSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
+        for (Integer encoded : encodedValues) {
+            String decoded = termEncoder.decode(encoded);
+            res.add(new Substitution(new Term(decoded), variable));
+        }
+    }
+
+    private void addObjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
+        for (Integer encoded : encodedValues) {
+            String decoded = termEncoder.decode(encoded);
+            res.add(new Substitution(new Term(decoded), variable));
+        }
+    }
+
+    private void addSubjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
+        for (Integer encoded : encodedValues) {
+            String decoded = termEncoder.decode(encoded);
+            res.add(new Substitution(new Term(decoded), variable));
+        }
+    }
+
+    private void addAllSubstitutions(Map<Integer, List<Integer>> entries, Term firstVariable, Term secondVariable,
+            List<Substitution> res) {
+        for (Map.Entry<Integer, List<Integer>> entry : entries.entrySet()) {
+            String decodedFirst = termEncoder.decode(entry.getKey());
+            res.add(new Substitution(new Term(decodedFirst), firstVariable));
+            for (Integer secondEncoded : entry.getValue()) {
+                String decodedSecond = termEncoder.decode(secondEncoded);
+                res.add(new Substitution(new Term(decodedSecond), secondVariable));
+            }
+        }
     }
 
     @Override
