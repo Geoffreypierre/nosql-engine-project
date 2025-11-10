@@ -7,7 +7,7 @@ import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
 import qengine.util.Result;
-import qengine.util.SearchTree;
+import qengine.util.HexaStoreSearchTree;
 import qengine.util.TermEncoder;
 
 import java.io.FileNotFoundException;
@@ -28,12 +28,12 @@ public class RDFHexaStore implements RDFStorage {
     private HashMap<String, Integer> convertedTerms;
     private TermEncoder termEncoder;
 
-    private SearchTree<Integer> S_O_P;
-    private SearchTree<Integer> S_P_O;
-    private SearchTree<Integer> P_S_O;
-    private SearchTree<Integer> P_O_S;
-    private SearchTree<Integer> O_P_S;
-    private SearchTree<Integer> O_S_P;
+    private HexaStoreSearchTree<Integer> S_O_P;
+    private HexaStoreSearchTree<Integer> S_P_O;
+    private HexaStoreSearchTree<Integer> P_S_O;
+    private HexaStoreSearchTree<Integer> P_O_S;
+    private HexaStoreSearchTree<Integer> O_P_S;
+    private HexaStoreSearchTree<Integer> O_S_P;
 
     private static final int SUBJECT_IS_PRESENT = 4;
     private static final int PREDICAT_IS_PRESENT = 2;
@@ -116,7 +116,7 @@ public class RDFHexaStore implements RDFStorage {
         return res;
     }
 
-    public Result<SearchTree<Integer>> selectOptimalSearchTree(int state) {
+    public Result<HexaStoreSearchTree<Integer>> selectOptimalSearchTree(int state) {
 
         if ((state | SUBJECT_IS_PRESENT) > 0) {
             if ((state | OBJECT_IS_PRESENT) > 0) {
@@ -150,13 +150,13 @@ public class RDFHexaStore implements RDFStorage {
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
         int state = getAvailableTerms(atom);
-        Result<SearchTree<Integer>> treeResult = selectOptimalSearchTree(state);
+        Result<HexaStoreSearchTree<Integer>> treeResult = selectOptimalSearchTree(state);
         if (treeResult.failed()) {
             Logger.getLogger("system").warning("Failed to select optimal search tree");
             return Collections.emptyIterator();
         }
 
-        SearchTree<Integer> optimalTree = treeResult.value();
+        HexaStoreSearchTree<Integer> optimalTree = treeResult.value();
 
         if ((state & SUBJECT_IS_PRESENT) != 0) {
             return matchWithSubject(atom, state, optimalTree);
@@ -171,7 +171,7 @@ public class RDFHexaStore implements RDFStorage {
         return Collections.emptyIterator();
     }
 
-    private Iterator<Substitution> matchWithSubject(RDFAtom atom, int state, SearchTree<Integer> tree) {
+    private Iterator<Substitution> matchWithSubject(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
         int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
         List<Substitution> res = new ArrayList<>();
 
@@ -188,7 +188,7 @@ public class RDFHexaStore implements RDFStorage {
         return res.iterator();
     }
 
-    private Iterator<Substitution> matchWithPredicate(RDFAtom atom, int state, SearchTree<Integer> tree) {
+    private Iterator<Substitution> matchWithPredicate(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
         int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
         List<Substitution> res = new ArrayList<>();
 
@@ -205,7 +205,7 @@ public class RDFHexaStore implements RDFStorage {
         return res.iterator();
     }
 
-    private Iterator<Substitution> matchWithObject(RDFAtom atom, int state, SearchTree<Integer> tree) {
+    private Iterator<Substitution> matchWithObject(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
         int convertedObject = convertedTerms.get(atom.getTripleObject().label());
         List<Substitution> res = new ArrayList<>();
 
