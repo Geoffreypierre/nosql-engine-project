@@ -1,14 +1,15 @@
 package qengine.util;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class TermEncoder {
 
-    private HashMap<Integer, String> decodingMap;
+    private final Map<Integer, String> decodingMap = new HashMap<>();
     private int count = 0;
 
     public int encode(String value) {
-        decodingMap.put(count++,value);
+        decodingMap.put(count++, value);
         return count;
     }
 

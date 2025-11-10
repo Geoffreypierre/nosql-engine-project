@@ -1,6 +1,7 @@
 package qengine.storage;
 
 import fr.boreal.model.logicalElements.api.*;
+import fr.boreal.model.logicalElements.impl.AtomImpl;
 import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
 
 import org.apache.commons.lang3.NotImplementedException;
@@ -30,12 +31,12 @@ public class RDFHexaStore implements RDFStorage {
     private final HashMap<String, Integer> convertedTerms = new HashMap<>();
     private final TermEncoder termEncoder = new TermEncoder();
 
-    private HexaStoreSearchTree<Integer> S_O_P;
-    private HexaStoreSearchTree<Integer> S_P_O;
-    private HexaStoreSearchTree<Integer> P_S_O;
-    private HexaStoreSearchTree<Integer> P_O_S;
-    private HexaStoreSearchTree<Integer> O_P_S;
-    private HexaStoreSearchTree<Integer> O_S_P;
+    private final HexaStoreSearchTree<Integer> S_O_P = new HexaStoreSearchTree<>();
+    private final HexaStoreSearchTree<Integer> S_P_O = new HexaStoreSearchTree<>();
+    private final HexaStoreSearchTree<Integer> P_S_O = new HexaStoreSearchTree<>();
+    private final HexaStoreSearchTree<Integer> P_O_S = new HexaStoreSearchTree<>();
+    private final HexaStoreSearchTree<Integer> O_P_S = new HexaStoreSearchTree<>();
+    private final HexaStoreSearchTree<Integer> O_S_P = new HexaStoreSearchTree<>();
 
     private static final int SUBJECT_IS_PRESENT = 4;
     private static final int PREDICAT_IS_PRESENT = 2;
@@ -70,9 +71,23 @@ public class RDFHexaStore implements RDFStorage {
 
     @Override
     public boolean add(RDFAtom atom) {
-        int subject = convertedTerms.get(atom.getTripleSubject().label());
-        int predicate = convertedTerms.get(atom.getTriplePredicate().label());
-        int object = convertedTerms.get(atom.getTripleObject().label());
+        var subjectLabel = atom.getTripleSubject().label();
+        var predicateLabel = atom.getTriplePredicate().label();
+        var objectLabel = atom.getTripleObject().label();
+
+        if (!convertedTerms.containsKey(subjectLabel)) {
+            convertedTerms.put(subjectLabel, termEncoder.encode(subjectLabel));
+        }
+        if (!convertedTerms.containsKey(predicateLabel)) {
+            convertedTerms.put(predicateLabel, termEncoder.encode(predicateLabel));
+        }
+        if (!convertedTerms.containsKey(objectLabel)) {
+            convertedTerms.put(objectLabel, termEncoder.encode(objectLabel));
+        }
+
+        int subject = convertedTerms.get(subjectLabel);
+        int predicate = convertedTerms.get(predicateLabel);
+        int object = convertedTerms.get(objectLabel);
 
         S_O_P.computeIfAbsent(subject, k -> new HashMap<>())
                 .computeIfAbsent(object, k -> new ArrayList<>())
@@ -290,7 +305,21 @@ public class RDFHexaStore implements RDFStorage {
 
     @Override
     public Collection<Atom> getAtoms() {
-        throw new NotImplementedException();
+        Collection<Atom> res = new ArrayList<>();
+        for (var entry : S_P_O.entrySet()) {
+            var subject = termEncoder.decode(entry.getKey());
+            for (var predicateEntry : entry.getValue().entrySet()) {
+                var predicate = termEncoder.decode(predicateEntry.getKey());
+                for (var encodedObject : predicateEntry.getValue()) {
+                    var object = termEncoder.decode(encodedObject);
+                    Term subjectTerm = new TermImpl(subject);
+                    Term predicateTerm = new TermImpl(predicate);
+                    Term objectTerm = new TermImpl(object);
+                    res.add(new RDFAtom(subjectTerm, predicateTerm, objectTerm));
+                }
+            }
+        }
+        return res;
     }
 
     private static class TermImpl implements Term {
