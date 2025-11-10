@@ -27,8 +27,8 @@ import java.util.logging.Logger;
  */
 public class RDFHexaStore implements RDFStorage {
 
-    private HashMap<String, Integer> convertedTerms;
-    private TermEncoder termEncoder;
+    private final HashMap<String, Integer> convertedTerms = new HashMap<>();
+    private final TermEncoder termEncoder = new TermEncoder();
 
     private HexaStoreSearchTree<Integer> S_O_P;
     private HexaStoreSearchTree<Integer> S_P_O;
@@ -227,21 +227,36 @@ public class RDFHexaStore implements RDFStorage {
     private void addPredicateSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
+            var substitution = new SubstitutionImpl();
+            Term substitutionTerm = new TermImpl(decoded);
+            assert variable.isVariable();
+            Variable castedVariable = (Variable) variable;
+            substitution.add(castedVariable, substitutionTerm);
+            res.add(substitution);
         }
     }
 
     private void addObjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
+            var substitution = new SubstitutionImpl();
+            Term substitutionTerm = new TermImpl(decoded);
+            assert variable.isVariable();
+            Variable castedVariable = (Variable) variable;
+            substitution.add(castedVariable, substitutionTerm);
+            res.add(substitution);
         }
     }
 
     private void addSubjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
-            res.add(new SubstitutionImpl(new TermImpl(decoded), variable));
+            var substitution = new SubstitutionImpl();
+            Term substitutionTerm = new TermImpl(decoded);
+            assert variable.isVariable();
+            Variable castedVariable = (Variable) variable;
+            substitution.add(castedVariable, substitutionTerm);
+            res.add(substitution);
         }
     }
 
@@ -249,10 +264,21 @@ public class RDFHexaStore implements RDFStorage {
             List<Substitution> res) {
         for (Map.Entry<Integer, List<Integer>> entry : entries.entrySet()) {
             String decodedFirst = termEncoder.decode(entry.getKey());
-            res.add(new SubstitutionImpl(new TermImpl(decodedFirst), firstVariable));
+            var substitutionFirst = new SubstitutionImpl();
+            Term substitutionTermFirst = new TermImpl(decodedFirst);
+            assert firstVariable.isVariable();
+            Variable castedFirstVariable = (Variable) firstVariable;
+            substitutionFirst.add(castedFirstVariable, substitutionTermFirst);
+            res.add(substitutionFirst);
+
             for (Integer secondEncoded : entry.getValue()) {
                 String decodedSecond = termEncoder.decode(secondEncoded);
-                res.add(new SubstitutionImpl(new TermImpl(decodedSecond), secondVariable));
+                var substitutionSecond = new SubstitutionImpl();
+                Term substitutionTermSecond = new TermImpl(decodedSecond);
+                assert secondVariable.isVariable();
+                Variable castedSecondVariable = (Variable) secondVariable;
+                substitutionSecond.add(castedSecondVariable, substitutionTermSecond);
+                res.add(substitutionSecond);
             }
         }
     }
