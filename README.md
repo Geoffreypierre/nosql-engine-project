@@ -1,16 +1,22 @@
-*ù
 # HAI914I - Un moteur d’évaluation de requêtes en étoile
 
 ## Auteurs
 - <federico.ulliana@inria.fr>
-- <guillaume.perution-kihli@inria.fr>
+- Guillaume Pérution-Khili
 
 #### Avant de commencer 
 
-Cloner le projet depuis le terminal.
+1. Cloner le projet depuis le terminal.
 
 ```
-git clone https://gitlab.etu.umontpellier.fr/p00000415795/nosql-engine-skeleton.git
+git clone https://gitlab.etu.umontpellier.fr/p00000013857/hai914i
+```
+
+2. Créer un projet dans le gitlab UM où vous pourrez déposer votre projet
+
+Vous avez le choix de comment faire pour réaliser cette opération. Par exemple, vous pouvez changer juste l'origin du projet que vous venez de cloner (pour les locaux, rappel du cours HAI501I - Ateliers de Génie Logiciel)
+```
+git remote set-url origin ___indiquer_ici_l_adresse_du_depot_que_vous_venez_de_creer_sur_gitlabUM___
 ```
 
 ---
@@ -24,7 +30,7 @@ Le TD suivant sera dédié à l’évaluation des performances du système réal
 
 ## Consignes
 - Le TD se fait en groupes de 1 ou 2 personnes.
-- Lorsque vous avez décidé quel sera votre groupe, inscrivez-vous dans le [tableau suivant](https://docs.google.com/spreadsheets/d/1bQY-Xba11DNcbCC5gujvPnidhajN-Kcb306PjXveF7M/edit?usp=sharing)
+- Lorsque vous avez décidé quel sera votre groupe, inscrivez-vous dans le [tableau suivant](https://docs.google.com/spreadsheets/d/1REDJjyQ0Z7sTcpBhHCWGr1PIKv6taUk9Nz_lg38reTI/edit?usp=sharing)
 - Le langage de programmation est imposé : **Java**.
 
 ---
@@ -39,13 +45,13 @@ Tous les membres du groupe doivent être présents et présenter le travail réa
 2. **Évaluation des requêtes en étoile** : code + rapport (3 pages) - **29 Novembre**.  
 3. **Analyse des bancs d'essai et plan des tests à réaliser.** : déscription des tests **6 Décembre** 
 4. **Analyse des performances** : rapport (5 pages) - **13 Décembre**.
-5. **Document final** (10 pages + code) : **~15~22 décembre** .
+5. **Document final** (10 pages + code) : **22 décembre** .
 
 ## Mini-soutenances / dates des évaluations en présentiel
-1. **Dictionnaire, index (Hexastore)** : **16 Novembre**.  
-2. **Évaluation des requêtes en étoile** :  **30 Novembre**.  
+1. **Dictionnaire, index (Hexastore)** : **14 Novembre**.  
+2. **Évaluation des requêtes en étoile** :  **28 Novembre**.  
 3. **Analyse des bancs d'essai et plan des tests à réaliser** : **6 Décembre** 
-4. **Analyse des performances** :  **14 Décembre**.
+4. **Analyse des performances** :  **12 Décembre**.
 
 Après la dernière évaluation en présentiel, vous aurez une semaine supplémentaire pour apporter les dernières corrections et finaliser au mieux votre projet. Les améliorations apportées seront naturellement prises en compte dans la note finale.
 
@@ -176,6 +182,18 @@ Le dictionnaire doit permettre d’encoder et de décoder les triplets de maniè
 
 ---
 
+### Stockage Row-Store Giant-Table (rendu 15 Novembre)
+
+Le stockage giant-table prévoit simplement de enregistrer la liste des triplets encodés dans la base.  
+
+On vous demande d'implémenter ce stockage, en créant une classe qui implémente l'interface **RDFStorage.java**. 
+L'intérêt de cette implémentation sera de disposer d'un cadre de base pour la comparation des performances par rapport à la version avec index.
+
+- **Lien avec le code :**
+  - La méthode `add(RDFAtom a)` de Giant-Table est utilisée pour l’insertion de données.  
+  - La méthode `match(RDFAtom a)` de Giant-Table est utilisée pour l’interrogation des données.
+---
+
 ### L’index (rendu 15 Novembre)
 
 L’index permet une évaluation efficace des requêtes et est adapté au système de persistance choisi.  
@@ -186,6 +204,11 @@ Dans ce projet, il est demandé d’implémenter l’approche **hexastore** pour
   - La méthode `add(RDFAtom a)` de l’Hexastore est utilisée pour l’insertion de données.  
   - La méthode `match(RDFAtom a)` est utilisée pour l’interrogation des données.
 
+- Dans votre index, on vous demande d'enregistrer des statistiques permettant de connaitre la séléctivité des patrons de triplet RDF (voir le cours). 
+
+- La solution basique pour l'implémentation de l'index est de s'appuyer sur des `HahsMap`. Si vous rencontrez des difficultés avec Java, il s'agit de la solution à préférer. Alternativement, on vous propose d'utiliser les arbres B+ proposés par `org.mapdb.BTreeMap` ([lien](https://mapdb.org/book/btreemap/)) : cette solution solution donne lieu à un bonus et, enfin, ne diffère pas trop de l'implémentation avec `HashMap`.
+
+
 ---
 
 ### L’accès aux données (rendu 29 Novembre)
@@ -194,7 +217,8 @@ L’accès aux données se fait par les structures de données mises en œuvre. 
 
 - **Lien avec le code :**  
   - Implémentez une méthode spécifique pour l’évaluation des requêtes en étoile.  
-  - Cette évaluation est utilisée par la méthode `match(StarQuery q)` de l’Hexastore.
+  - Cette évaluation est utilisée par la méthode `match(StarQuery q)` de l’Hexastore. 
+  Vous pouvez implémenter cela directement au niveau de l'interface `RDFStorage` afin qu'elle soit héritée par toutes les implémentations de cette interface (ici, Giant-Table et Hexastore).
 
 ---
 
@@ -225,3 +249,4 @@ Vous devez implémenter une procédure qui compare les résultats de votre syst�
 3. Les résultats doivent être exportés dans un répertoire dédié.
 
 ---
+
