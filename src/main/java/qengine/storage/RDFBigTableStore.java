@@ -89,42 +89,48 @@ public class RDFBigTableStore implements RDFStorage {
                 return lastMatchedAtomIndex + 1 < atoms.size();
             }
 
+            private boolean matchesAtom(RDFAtom next, SubstitutionImpl res) {
+                if ((availableTerms & SUBJECT_IS_PRESENT) > 0) {
+                    if (!target.getTripleSubject().equals(next.getTripleSubject())) {
+                        return false;
+                    }
+                } else {
+                    Variable subjectVar = (Variable) target.getTripleSubject();
+                    var nextSubjectVar = next.getTripleSubject();
+                    res.add(subjectVar, nextSubjectVar);
+                }
+
+                if ((availableTerms & PREDICAT_IS_PRESENT) > 0) {
+                    if (!target.getTriplePredicate().equals(next.getTriplePredicate())) {
+                        return false;
+                    }
+                } else {
+                    Variable predicateVar = (Variable) target.getTriplePredicate();
+                    var nextPredicateVar = next.getTriplePredicate();
+                    res.add(predicateVar, nextPredicateVar);
+                }
+
+                if ((availableTerms & OBJECT_IS_PRESENT) > 0) {
+                    if (!target.getTripleObject().equals(next.getTripleObject())) {
+                        return false;
+                    }
+                } else {
+                    Variable objectVar = (Variable) target.getTripleObject();
+                    var nextObjectVar = next.getTripleObject();
+                    res.add(objectVar, nextObjectVar);
+                }
+                return true;
+            }
+
             @Override
             public Substitution next() {
                 while (hasNext()) {
                     var res = new SubstitutionImpl();
                     RDFAtom next = atoms.get(++lastMatchedAtomIndex);
 
-                    if ((availableTerms | SUBJECT_IS_PRESENT) > 0) {
-                        if (!target.getTripleSubject().equals(next.getTripleSubject())) {
-                            continue;
-                        }
-                    } else {
-                        Variable subjectVar = (Variable) target.getTripleSubject();
-                        var nextSubjectVar = next.getTripleSubject();
-                        res.add(subjectVar, nextSubjectVar);
+                    if (matchesAtom(next, res)) {
+                        return res;
                     }
-
-                    if ((availableTerms | PREDICAT_IS_PRESENT) > 0) {
-                        if (!target.getTriplePredicate().equals(next.getTriplePredicate())) {
-                            continue;
-                        }
-                    } else {
-                        Variable predicateVar = (Variable) target.getTriplePredicate();
-                        var nextPredicateVar = next.getTriplePredicate();
-                        res.add(predicateVar, nextPredicateVar);
-                    }
-
-                    if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
-                        if (!target.getTripleObject().equals(next.getTripleObject())) {
-                            continue;
-                        }
-                    } else {
-                        Variable objectVar = (Variable) target.getTripleObject();
-                        var nextObjectVar = next.getTripleObject();
-                        res.add(objectVar, nextObjectVar);
-                    }
-                    return res;
                 }
                 throw new NoSuchElementException();
             }
@@ -133,6 +139,7 @@ public class RDFBigTableStore implements RDFStorage {
     }
 
     @Override
+
     public Iterator<Substitution> match(StarQuery q) {
         throw new NotImplementedException();
     }
