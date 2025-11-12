@@ -18,6 +18,7 @@ import java.io.FileReader;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.logging.Logger;
+import qengine.util.BigTableMatchIterator;
 
 /**
  * Implémentation d'un HexaStore pour stocker des RDFAtom.
@@ -78,64 +79,7 @@ public class RDFBigTableStore implements RDFStorage {
 
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
-        return new Iterator<Substitution>() {
-            private final RDFAtom target = atom;
-            private final int availableTerms = getAvailableTerms(atom);
-            private final List<RDFAtom> atoms = rdfAtoms;
-            private int lastMatchedAtomIndex = -1;
-
-            @Override
-            public boolean hasNext() {
-                return lastMatchedAtomIndex + 1 < atoms.size();
-            }
-
-            private boolean matchesAtom(RDFAtom next, SubstitutionImpl res) {
-                if ((availableTerms & SUBJECT_IS_PRESENT) > 0) {
-                    if (!target.getTripleSubject().equals(next.getTripleSubject())) {
-                        return false;
-                    }
-                } else {
-                    Variable subjectVar = (Variable) target.getTripleSubject();
-                    var nextSubjectVar = next.getTripleSubject();
-                    res.add(subjectVar, nextSubjectVar);
-                }
-
-                if ((availableTerms & PREDICAT_IS_PRESENT) > 0) {
-                    if (!target.getTriplePredicate().equals(next.getTriplePredicate())) {
-                        return false;
-                    }
-                } else {
-                    Variable predicateVar = (Variable) target.getTriplePredicate();
-                    var nextPredicateVar = next.getTriplePredicate();
-                    res.add(predicateVar, nextPredicateVar);
-                }
-
-                if ((availableTerms & OBJECT_IS_PRESENT) > 0) {
-                    if (!target.getTripleObject().equals(next.getTripleObject())) {
-                        return false;
-                    }
-                } else {
-                    Variable objectVar = (Variable) target.getTripleObject();
-                    var nextObjectVar = next.getTripleObject();
-                    res.add(objectVar, nextObjectVar);
-                }
-                return true;
-            }
-
-            @Override
-            public Substitution next() {
-                while (hasNext()) {
-                    var res = new SubstitutionImpl();
-                    RDFAtom next = atoms.get(++lastMatchedAtomIndex);
-
-                    if (matchesAtom(next, res)) {
-                        return res;
-                    }
-                }
-                throw new NoSuchElementException();
-            }
-
-        };
+        return new BigTableMatchIterator(atom, rdfAtoms, getAvailableTerms(atom));
     }
 
     @Override
