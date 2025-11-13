@@ -1,22 +1,32 @@
 package qengine.storage;
 
-import fr.boreal.model.logicalElements.api.*;
-import fr.boreal.model.logicalElements.impl.AtomImpl;
-import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.rdf4j.rio.RDFFormat;
+
+import fr.boreal.model.logicalElements.api.Atom;
+import fr.boreal.model.logicalElements.api.Substitution;
+import fr.boreal.model.logicalElements.api.Term;
+import fr.boreal.model.logicalElements.api.Variable;
+import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
 import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
-import qengine.util.Result;
 import qengine.util.HexaStoreSearchTree;
+import qengine.util.Result;
 import qengine.util.TermEncoder;
-
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.util.*;
-import java.util.logging.Logger;
 
 /**
  * Implémentation d'un HexaStore pour stocker des RDFAtom.
@@ -167,6 +177,17 @@ public class RDFHexaStore implements RDFStorage {
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
         int state = getAvailableTerms(atom);
+
+        if (state == 0) {
+            Logger.getLogger("system").warning("At least one term must be specified for matching.");
+            return Collections.emptyIterator();
+        }
+
+        if (state == (SUBJECT_IS_PRESENT | PREDICAT_IS_PRESENT | OBJECT_IS_PRESENT)) {
+            Logger.getLogger("system").warning("All terms are specified; no variables to substitute.");
+            return Collections.emptyIterator();
+        }
+
         Result<HexaStoreSearchTree<Integer>> treeResult = selectOptimalSearchTree(state);
         if (treeResult.failed()) {
             Logger.getLogger("system").warning("Failed to select optimal search tree");
