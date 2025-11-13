@@ -215,10 +215,10 @@ public class RDFHexaStore implements RDFStorage {
 
         if ((state & OBJECT_IS_PRESENT) != 0) {
             int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-            addPredicateSubstitutions(tree.get(convertedSubject).get(convertedObject), atom.getTriplePredicate(), res);
+            addSubstitutions(tree.get(convertedSubject).get(convertedObject), atom.getTriplePredicate(), res);
         } else if ((state & PREDICAT_IS_PRESENT) != 0) {
             int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
-            addObjectSubstitutions(tree.get(convertedSubject).get(convertedPredicate), atom.getTripleObject(), res);
+            addSubstitutions(tree.get(convertedSubject).get(convertedPredicate), atom.getTripleObject(), res);
         } else {
             addAllSubstitutions(tree.get(convertedSubject), atom.getTriplePredicate(), atom.getTripleObject(), res);
         }
@@ -232,10 +232,10 @@ public class RDFHexaStore implements RDFStorage {
 
         if ((state & SUBJECT_IS_PRESENT) != 0) {
             int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-            addObjectSubstitutions(tree.get(convertedPredicate).get(convertedSubject), atom.getTripleObject(), res);
+            addSubstitutions(tree.get(convertedPredicate).get(convertedSubject), atom.getTripleObject(), res);
         } else if ((state & OBJECT_IS_PRESENT) != 0) {
             int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-            addSubjectSubstitutions(tree.get(convertedPredicate).get(convertedObject), atom.getTripleSubject(), res);
+            addSubstitutions(tree.get(convertedPredicate).get(convertedObject), atom.getTripleSubject(), res);
         } else {
             addAllSubstitutions(tree.get(convertedPredicate), atom.getTripleSubject(), atom.getTripleObject(), res);
         }
@@ -249,10 +249,10 @@ public class RDFHexaStore implements RDFStorage {
 
         if ((state & SUBJECT_IS_PRESENT) != 0) {
             int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-            addPredicateSubstitutions(tree.get(convertedObject).get(convertedSubject), atom.getTriplePredicate(), res);
+            addSubstitutions(tree.get(convertedObject).get(convertedSubject), atom.getTriplePredicate(), res);
         } else if ((state & PREDICAT_IS_PRESENT) != 0) {
             int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
-            addSubjectSubstitutions(tree.get(convertedObject).get(convertedPredicate), atom.getTripleSubject(), res);
+            addSubstitutions(tree.get(convertedObject).get(convertedPredicate), atom.getTripleSubject(), res);
         } else {
             addAllSubstitutions(tree.get(convertedObject), atom.getTriplePredicate(), atom.getTripleObject(), res);
         }
@@ -260,37 +260,14 @@ public class RDFHexaStore implements RDFStorage {
         return res.iterator();
     }
 
-    private void addPredicateSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
+    private void addSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
+        assert variable.isVariable() : "Term must be a variable";
+        Variable castedVariable = (Variable) variable;
+        
         for (Integer encoded : encodedValues) {
             String decoded = termEncoder.decode(encoded);
             var substitution = new SubstitutionImpl();
             Term substitutionTerm = new TermImpl(decoded);
-            assert variable.isVariable();
-            Variable castedVariable = (Variable) variable;
-            substitution.add(castedVariable, substitutionTerm);
-            res.add(substitution);
-        }
-    }
-
-    private void addObjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
-        for (Integer encoded : encodedValues) {
-            String decoded = termEncoder.decode(encoded);
-            var substitution = new SubstitutionImpl();
-            Term substitutionTerm = new TermImpl(decoded);
-            assert variable.isVariable();
-            Variable castedVariable = (Variable) variable;
-            substitution.add(castedVariable, substitutionTerm);
-            res.add(substitution);
-        }
-    }
-
-    private void addSubjectSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
-        for (Integer encoded : encodedValues) {
-            String decoded = termEncoder.decode(encoded);
-            var substitution = new SubstitutionImpl();
-            Term substitutionTerm = new TermImpl(decoded);
-            assert variable.isVariable();
-            Variable castedVariable = (Variable) variable;
             substitution.add(castedVariable, substitutionTerm);
             res.add(substitution);
         }
