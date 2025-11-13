@@ -260,6 +260,7 @@ public class RDFHexaStore implements RDFStorage {
         return res.iterator();
     }
 
+
     private void addSubstitutions(List<Integer> encodedValues, Term variable, List<Substitution> res) {
         assert variable.isVariable() : "Term must be a variable";
         Variable castedVariable = (Variable) variable;
@@ -273,25 +274,28 @@ public class RDFHexaStore implements RDFStorage {
         }
     }
 
+
     private void addAllSubstitutions(Map<Integer, List<Integer>> entries, Term firstVariable, Term secondVariable,
             List<Substitution> res) {
+        assert firstVariable.isVariable() : "First term must be a variable";
+        assert secondVariable.isVariable() : "Second term must be a variable";
+        
+        Variable castedFirstVariable = (Variable) firstVariable;
+        Variable castedSecondVariable = (Variable) secondVariable;
+        
         for (Map.Entry<Integer, List<Integer>> entry : entries.entrySet()) {
             String decodedFirst = termEncoder.decode(entry.getKey());
-            var substitutionFirst = new SubstitutionImpl();
-            Term substitutionTermFirst = new TermImpl(decodedFirst);
-            assert firstVariable.isVariable();
-            Variable castedFirstVariable = (Variable) firstVariable;
-            substitutionFirst.add(castedFirstVariable, substitutionTermFirst);
-            res.add(substitutionFirst);
-
+            Term firstTerm = new TermImpl(decodedFirst);
+            
             for (Integer secondEncoded : entry.getValue()) {
                 String decodedSecond = termEncoder.decode(secondEncoded);
-                var substitutionSecond = new SubstitutionImpl();
-                Term substitutionTermSecond = new TermImpl(decodedSecond);
-                assert secondVariable.isVariable();
-                Variable castedSecondVariable = (Variable) secondVariable;
-                substitutionSecond.add(castedSecondVariable, substitutionTermSecond);
-                res.add(substitutionSecond);
+                Term secondTerm = new TermImpl(decodedSecond);
+                
+                // Create a single substitution with both variable mappings
+                var substitution = new SubstitutionImpl();
+                substitution.add(castedFirstVariable, firstTerm);
+                substitution.add(castedSecondVariable, secondTerm);
+                res.add(substitution);
             }
         }
     }
