@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
-import fr.boreal.model.logicalElements.api.Atom;
 import fr.boreal.model.logicalElements.api.Substitution;
 import fr.boreal.model.logicalElements.api.Term;
 import fr.boreal.model.logicalElements.api.Variable;
@@ -91,7 +90,6 @@ public class RDFHexaStore implements RDFStorage {
         return true;
     }
 
-   
     private void addToIndex(HexaStoreSearchTree<Integer> index, int key1, int key2, int value) {
         if (!index.containsKey(key1)) {
             index.put(key1, new HashMap<>());
@@ -155,18 +153,18 @@ public class RDFHexaStore implements RDFStorage {
         int availableTerms = getAvailableTerms(atom);
 
         if (availableTerms == 0) {
-            Logger.getLogger("system").warning("At least one term must be specified for matching.");
+            Logger.getLogger(Globals.SYSTEM_LOGGER).warning("At least one term must be specified for matching.");
             return Collections.emptyIterator();
         }
 
         if (availableTerms == (Globals.SUBJECT_IS_PRESENT | Globals.PREDICAT_IS_PRESENT | Globals.OBJECT_IS_PRESENT)) {
-            Logger.getLogger("system").warning("All terms are specified; no variables to substitute.");
+            Logger.getLogger(Globals.SYSTEM_LOGGER).warning("All terms are specified; no variables to substitute.");
             return Collections.emptyIterator();
         }
 
         Result<HexaStoreSearchTree<Integer>> treeResult = selectOptimalSearchTree(availableTerms);
         if (treeResult.failed()) {
-            Logger.getLogger("system").warning("Failed to select optimal search tree");
+            Logger.getLogger(Globals.SYSTEM_LOGGER).warning("Failed to select optimal search tree");
             return Collections.emptyIterator();
         }
 
@@ -293,30 +291,17 @@ public class RDFHexaStore implements RDFStorage {
     public Collection<Integer> getAtoms() {
         Collection<Integer> res = new ArrayList<>();
         for (var entry : S_P_O.entrySet()) {
-            var subject = termEncoder.decode(entry.getKey());
+            var subject = entry.getKey();
             for (var predicateEntry : entry.getValue().entrySet()) {
-                var predicate = termEncoder.decode(predicateEntry.getKey());
+                var predicate = predicateEntry.getKey();
                 for (var encodedObject : predicateEntry.getValue()) {
-                    var object = termEncoder.decode(encodedObject);
-                    res.add(new RDFAtom(subject, predicate, object));
+                    res.add(subject);
+                    res.add(predicate);
+                    res.add(encodedObject);
                 }
             }
         }
         return res;
     }
 
-    private static class TermImpl implements Term {
-
-        private final String label;
-
-        public TermImpl(String label) {
-            this.label = label;
-        }
-
-        @Override
-        public String label() {
-            return label;
-        }
-
-    }
 }
