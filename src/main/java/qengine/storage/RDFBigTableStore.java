@@ -1,24 +1,24 @@
 package qengine.storage;
 
-import fr.boreal.model.logicalElements.api.*;
-import fr.boreal.model.logicalElements.impl.AtomImpl;
-import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.rdf4j.rio.RDFFormat;
+
+import fr.boreal.model.logicalElements.api.Atom;
+import fr.boreal.model.logicalElements.api.Substitution;
+import fr.boreal.model.logicalElements.api.Term;
 import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
-import qengine.util.Result;
-import qengine.util.HexaStoreSearchTree;
-import qengine.util.TermEncoder;
-
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.lang.reflect.Array;
-import java.util.*;
-import java.util.logging.Logger;
 import qengine.util.BigTableMatchIterator;
+import qengine.util.Globals;
 
 /**
  * Implémentation d'un HexaStore pour stocker des RDFAtom.
@@ -32,9 +32,6 @@ public class RDFBigTableStore implements RDFStorage {
 
     private final List<RDFAtom> rdfAtoms = new ArrayList<>();
 
-    private static final int SUBJECT_IS_PRESENT = 4;
-    private static final int PREDICAT_IS_PRESENT = 2;
-    private static final int OBJECT_IS_PRESENT = 1;
 
     public int getAvailableTerms(RDFAtom atom) {
 
@@ -43,13 +40,13 @@ public class RDFBigTableStore implements RDFStorage {
         Term object = atom.getTripleObject();
         int res = 0;
         if (!subject.isVariable()) {
-            res += SUBJECT_IS_PRESENT;
+            res += Globals.SUBJECT_IS_PRESENT;
         }
         if (!predicate.isVariable()) {
-            res += PREDICAT_IS_PRESENT;
+            res += Globals.PREDICAT_IS_PRESENT;
         }
         if (!object.isVariable()) {
-            res += OBJECT_IS_PRESENT;
+            res += Globals.OBJECT_IS_PRESENT;
         }
         return res;
     }

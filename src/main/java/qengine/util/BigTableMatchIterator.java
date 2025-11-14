@@ -16,9 +16,6 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
     private final List<RDFAtom> atoms;
     private int lastMatchedAtomIndex = -1;
 
-    private static final int SUBJECT_IS_PRESENT = 4;
-    private static final int PREDICAT_IS_PRESENT = 2;
-    private static final int OBJECT_IS_PRESENT = 1;
 
     public BigTableMatchIterator(RDFAtom target, List<RDFAtom> atoms, int availableTerms) {
         this.target = target;
@@ -32,7 +29,7 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
     }
 
     private boolean matchesAtom(RDFAtom next, SubstitutionImpl res) {
-        if ((availableTerms & SUBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) > 0) {
             if (!target.getTripleSubject().equals(next.getTripleSubject())) {
                 return false;
             }
@@ -42,7 +39,7 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
             res.add(subjectVar, nextSubjectVar);
         }
 
-        if ((availableTerms & PREDICAT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) > 0) {
             if (!target.getTriplePredicate().equals(next.getTriplePredicate())) {
                 return false;
             }
@@ -52,7 +49,7 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
             res.add(predicateVar, nextPredicateVar);
         }
 
-        if ((availableTerms & OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
             if (!target.getTripleObject().equals(next.getTripleObject())) {
                 return false;
             }

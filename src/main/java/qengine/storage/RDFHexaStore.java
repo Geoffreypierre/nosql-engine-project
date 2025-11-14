@@ -24,6 +24,7 @@ import fr.boreal.model.logicalElements.impl.SubstitutionImpl;
 import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
+import qengine.util.Globals;
 import qengine.util.HexaStoreSearchTree;
 import qengine.util.Result;
 import qengine.util.TermEncoder;
@@ -48,9 +49,6 @@ public class RDFHexaStore implements RDFStorage {
     private final HexaStoreSearchTree<Integer> O_P_S = new HexaStoreSearchTree<>();
     private final HexaStoreSearchTree<Integer> O_S_P = new HexaStoreSearchTree<>();
 
-    private static final int SUBJECT_IS_PRESENT = 4;
-    private static final int PREDICAT_IS_PRESENT = 2;
-    private static final int OBJECT_IS_PRESENT = 1;
 
     private void loadTerm(Set<String> rawTerms) {
         for (String rawTerm : rawTerms) {
@@ -132,35 +130,35 @@ public class RDFHexaStore implements RDFStorage {
         Term object = atom.getTripleObject();
         int res = 0;
         if (!subject.isVariable()) {
-            res += SUBJECT_IS_PRESENT;
+            res += Globals.SUBJECT_IS_PRESENT;
         }
         if (!predicate.isVariable()) {
-            res += PREDICAT_IS_PRESENT;
+            res += Globals.PREDICAT_IS_PRESENT;
         }
         if (!object.isVariable()) {
-            res += OBJECT_IS_PRESENT;
+            res += Globals.OBJECT_IS_PRESENT;
         }
         return res;
     }
 
     public Result<HexaStoreSearchTree<Integer>> selectOptimalSearchTree(int availableTerms) {
 
-        if ((availableTerms | SUBJECT_IS_PRESENT) > 0) {
-            if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | Globals.SUBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
                 return Result.success(S_O_P);
             } else {
                 return Result.success(S_P_O);
             }
         }
-        if ((availableTerms | PREDICAT_IS_PRESENT) > 0) {
-            if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | Globals.PREDICAT_IS_PRESENT) > 0) {
+            if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
                 return Result.success(P_O_S);
             } else {
                 return Result.success(P_S_O);
             }
         }
-        if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
-            if ((availableTerms | SUBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms | Globals.SUBJECT_IS_PRESENT) > 0) {
                 return Result.success(O_S_P);
             } else {
                 return Result.success(O_P_S);
@@ -183,7 +181,7 @@ public class RDFHexaStore implements RDFStorage {
             return Collections.emptyIterator();
         }
 
-        if (availableTerms == (SUBJECT_IS_PRESENT | PREDICAT_IS_PRESENT | OBJECT_IS_PRESENT)) {
+        if (availableTerms == (Globals.SUBJECT_IS_PRESENT | Globals.PREDICAT_IS_PRESENT | Globals.OBJECT_IS_PRESENT)) {
             Logger.getLogger("system").warning("All terms are specified; no variables to substitute.");
             return Collections.emptyIterator();
         }
@@ -196,13 +194,13 @@ public class RDFHexaStore implements RDFStorage {
 
         HexaStoreSearchTree<Integer> optimalTree = treeResult.value();
 
-        if ((availableTerms & SUBJECT_IS_PRESENT) != 0) {
+        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) != 0) {
             return matchWithSubject(atom, availableTerms, optimalTree);
         }
-        if ((availableTerms & PREDICAT_IS_PRESENT) != 0) {
+        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) != 0) {
             return matchWithPredicate(atom, availableTerms, optimalTree);
         }
-        if ((availableTerms & OBJECT_IS_PRESENT) != 0) {
+        if ((availableTerms & Globals.OBJECT_IS_PRESENT) != 0) {
             return matchWithObject(atom, availableTerms, optimalTree);
         }
 
@@ -220,6 +218,7 @@ public class RDFHexaStore implements RDFStorage {
             HexaStoreSearchTree<Integer> tree) {
         
         List<Substitution> res = new ArrayList<>();
+        
         
         if ((availableTerms & secondFlag) != 0) {
             
@@ -242,8 +241,8 @@ public class RDFHexaStore implements RDFStorage {
             atom.getTripleObject(),
             atom.getTriplePredicate(),
             availableTerms,
-            OBJECT_IS_PRESENT,
-            PREDICAT_IS_PRESENT,
+            Globals.OBJECT_IS_PRESENT,
+            Globals.PREDICAT_IS_PRESENT,
             tree
         );
     }
@@ -255,8 +254,8 @@ public class RDFHexaStore implements RDFStorage {
             atom.getTripleSubject(),
             atom.getTripleObject(),
             availableTerms,
-            SUBJECT_IS_PRESENT,
-            OBJECT_IS_PRESENT,
+            Globals.SUBJECT_IS_PRESENT,
+            Globals.OBJECT_IS_PRESENT,
             tree
         );
     }
@@ -268,8 +267,8 @@ public class RDFHexaStore implements RDFStorage {
             atom.getTripleSubject(),
             atom.getTriplePredicate(),
             availableTerms,
-            SUBJECT_IS_PRESENT,
-            PREDICAT_IS_PRESENT,
+            Globals.SUBJECT_IS_PRESENT,
+            Globals.PREDICAT_IS_PRESENT,
             tree
         );
     }
