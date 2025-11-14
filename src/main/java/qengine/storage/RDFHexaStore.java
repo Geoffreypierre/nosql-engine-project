@@ -39,7 +39,7 @@ import qengine.util.TermEncoder;
  */
 public class RDFHexaStore implements RDFStorage {
 
-    private final HashMap<String, Integer> convertedTerms = new HashMap<>();
+    private final Map<String, Integer> convertedTerms = new HashMap<>();
     private final TermEncoder termEncoder = new TermEncoder();
 
     private final HexaStoreSearchTree<Integer> S_O_P = new HexaStoreSearchTree<>();
@@ -143,22 +143,22 @@ public class RDFHexaStore implements RDFStorage {
 
     public Result<HexaStoreSearchTree<Integer>> selectOptimalSearchTree(int availableTerms) {
 
-        if ((availableTerms | Globals.SUBJECT_IS_PRESENT) > 0) {
-            if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
                 return Result.success(S_O_P);
             } else {
                 return Result.success(S_P_O);
             }
         }
-        if ((availableTerms | Globals.PREDICAT_IS_PRESENT) > 0) {
-            if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) > 0) {
+            if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
                 return Result.success(P_O_S);
             } else {
                 return Result.success(P_S_O);
             }
         }
-        if ((availableTerms | Globals.OBJECT_IS_PRESENT) > 0) {
-            if ((availableTerms | Globals.SUBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms & Globals.SUBJECT_IS_PRESENT) > 0) {
                 return Result.success(O_S_P);
             } else {
                 return Result.success(O_P_S);
