@@ -20,18 +20,80 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
     private TermEncoder termEncoder;
     private int lastMatchedAtomIndex = -1;
 
+    private final int encodedObjectTarget;
+    private final int encodedSubjectTarget;
+    private final int encodedPredicateTarget;
 
     public BigTableMatchIterator(RDFAtom target, int availableTerms,
-                                 TermEncoder termEncoder,
-                                 List<Integer> rdfAtomsSubject,
-                                 List<Integer> rdfAtomsPredicate,
-                                 List<Integer> rdfAtomsObject) {
+            TermEncoder termEncoder,
+            List<Integer> rdfAtomsSubject,
+            List<Integer> rdfAtomsPredicate,
+            List<Integer> rdfAtomsObject) {
         this.target = target;
         this.availableTerms = availableTerms;
         this.termEncoder = termEncoder;
         this.rdfAtomsSubject = rdfAtomsSubject;
         this.rdfAtomsPredicate = rdfAtomsPredicate;
         this.rdfAtomsObject = rdfAtomsObject;
+
+        if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
+            this.encodedObjectTarget = termEncoder.encode(target.getTripleObject());
+        } else {
+            this.encodedObjectTarget = -1;
+        }
+        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) > 0) {
+            this.encodedSubjectTarget = termEncoder.encode(target.getTripleSubject());
+        } else {
+            this.encodedSubjectTarget = -1;
+        }
+        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) > 0) {
+            this.encodedPredicateTarget = termEncoder.encode(target.getTriplePredicate());
+        } else {
+            this.encodedPredicateTarget = -1;
+        }
+
+    }
+
+    private boolean matchesAtom(int next) {
+        return matchesTerm(Globals.SUBJECT_IS_PRESENT, encodedSubjectTarget,
+                rdfAtomsSubject.get(next))
+                && matchesTerm(Globals.PREDICAT_IS_PRESENT, encodedPredicateTarget,
+                        rdfAtomsPredicate.get(next))
+                && matchesTerm(Globals.OBJECT_IS_PRESENT, encodedObjectTarget,
+                        rdfAtomsObject.get(next));
+    }
+
+    private boolean matchesTerm(int termFlag, int encodedTarget, int encodedActual) {
+        if ((availableTerms & termFlag) > 0) {
+            return encodedTarget == encodedActual;
+        }
+        return true;
+    }
+
+    private void fillSubstitution(int encodedActual,
+            Term targetTerm, SubstitutionImpl res) {
+
+        Variable variable = (Variable) targetTerm;
+        Term decodedTerm = termEncoder.decode(encodedActual);
+        res.add(variable, decodedTerm);
+
+    }
+
+    private Substitution fillSubtitutions(int next) {
+        var res = new SubstitutionImpl();
+        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) <= 0) {
+            fillSubstitution(rdfAtomsSubject.get(next),
+                    target.getTripleSubject(), res);
+        }
+        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) <= 0) {
+            fillSubstitution(rdfAtomsPredicate.get(next),
+                    target.getTriplePredicate(), res);
+        }
+        if ((availableTerms & Globals.OBJECT_IS_PRESENT) <= 0) {
+            fillSubstitution(rdfAtomsObject.get(next),
+                    target.getTripleObject(), res);
+        }
+        return res;
     }
 
     @Override
@@ -39,46 +101,13 @@ public class BigTableMatchIterator implements Iterator<Substitution> {
         return lastMatchedAtomIndex + 1 < rdfAtomsSubject.size();
     }
 
-    private boolean matchesAtom(int next, SubstitutionImpl res) {
-        if ((availableTerms & Globals.SUBJECT_IS_PRESENT) > 0) {
-            if (!target.getTripleSubject().equals(rdfAtomsSubject.get(next))) {
-                return false;
-            }
-        } else {
-            Variable subjectVar = (Variable) target.getTripleSubject();
-            var nextSubjectVar = termEncoder.decode(rdfAtomsSubject.get(next));
-            res.add(subjectVar, nextSubjectVar);
-        }
-
-        if ((availableTerms & Globals.PREDICAT_IS_PRESENT) > 0) {
-            if (!target.getTriplePredicate().equals(rdfAtomsPredicate.get(next))) {
-                return false;
-            }
-        } else {
-            Variable predicateVar = (Variable) target.getTriplePredicate();
-            var nextPredicateVar = termEncoder.decode(rdfAtomsPredicate.get(next));
-            res.add(predicateVar, nextPredicateVar);
-        }
-
-        if ((availableTerms & Globals.OBJECT_IS_PRESENT) > 0) {
-            if (!target.getTripleObject().equals(rdfAtomsObject.get(next))) {
-                return false;
-            }
-        } else {
-            Variable objectVar = (Variable) target.getTripleObject();
-            var nextObjectVar = termEncoder.decode(rdfAtomsObject.get(next));
-            res.add(objectVar, nextObjectVar);
-        }
-        return true;
-    }
-
     @Override
     public Substitution next() {
+
         while (hasNext()) {
-            var res = new SubstitutionImpl();
             int next = ++lastMatchedAtomIndex;
-            if (matchesAtom(next, res)) {
-                return res;
+            if (matchesAtom(next)) {
+                return fillSubtitutions(next);
             }
         }
         throw new NoSuchElementException();
