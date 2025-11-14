@@ -143,24 +143,24 @@ public class RDFHexaStore implements RDFStorage {
         return res;
     }
 
-    public Result<HexaStoreSearchTree<Integer>> selectOptimalSearchTree(int state) {
+    public Result<HexaStoreSearchTree<Integer>> selectOptimalSearchTree(int availableTerms) {
 
-        if ((state | SUBJECT_IS_PRESENT) > 0) {
-            if ((state | OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | SUBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
                 return Result.success(S_O_P);
             } else {
                 return Result.success(S_P_O);
             }
         }
-        if ((state | PREDICAT_IS_PRESENT) > 0) {
-            if ((state | OBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | PREDICAT_IS_PRESENT) > 0) {
+            if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
                 return Result.success(P_O_S);
             } else {
                 return Result.success(P_S_O);
             }
         }
-        if ((state | OBJECT_IS_PRESENT) > 0) {
-            if ((state | SUBJECT_IS_PRESENT) > 0) {
+        if ((availableTerms | OBJECT_IS_PRESENT) > 0) {
+            if ((availableTerms | SUBJECT_IS_PRESENT) > 0) {
                 return Result.success(O_S_P);
             } else {
                 return Result.success(O_P_S);
@@ -176,19 +176,19 @@ public class RDFHexaStore implements RDFStorage {
 
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
-        int state = getAvailableTerms(atom);
+        int availableTerms = getAvailableTerms(atom);
 
-        if (state == 0) {
+        if (availableTerms == 0) {
             Logger.getLogger("system").warning("At least one term must be specified for matching.");
             return Collections.emptyIterator();
         }
 
-        if (state == (SUBJECT_IS_PRESENT | PREDICAT_IS_PRESENT | OBJECT_IS_PRESENT)) {
+        if (availableTerms == (SUBJECT_IS_PRESENT | PREDICAT_IS_PRESENT | OBJECT_IS_PRESENT)) {
             Logger.getLogger("system").warning("All terms are specified; no variables to substitute.");
             return Collections.emptyIterator();
         }
 
-        Result<HexaStoreSearchTree<Integer>> treeResult = selectOptimalSearchTree(state);
+        Result<HexaStoreSearchTree<Integer>> treeResult = selectOptimalSearchTree(availableTerms);
         if (treeResult.failed()) {
             Logger.getLogger("system").warning("Failed to select optimal search tree");
             return Collections.emptyIterator();
@@ -196,68 +196,82 @@ public class RDFHexaStore implements RDFStorage {
 
         HexaStoreSearchTree<Integer> optimalTree = treeResult.value();
 
-        if ((state & SUBJECT_IS_PRESENT) != 0) {
-            return matchWithSubject(atom, state, optimalTree);
+        if ((availableTerms & SUBJECT_IS_PRESENT) != 0) {
+            return matchWithSubject(atom, availableTerms, optimalTree);
         }
-        if ((state & PREDICAT_IS_PRESENT) != 0) {
-            return matchWithPredicate(atom, state, optimalTree);
+        if ((availableTerms & PREDICAT_IS_PRESENT) != 0) {
+            return matchWithPredicate(atom, availableTerms, optimalTree);
         }
-        if ((state & OBJECT_IS_PRESENT) != 0) {
-            return matchWithObject(atom, state, optimalTree);
+        if ((availableTerms & OBJECT_IS_PRESENT) != 0) {
+            return matchWithObject(atom, availableTerms, optimalTree);
         }
 
         return Collections.emptyIterator();
     }
 
-    private Iterator<Substitution> matchWithSubject(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
+
+    private Iterator<Substitution> matchWithKnownTerm(
+            int knownTerm,
+            Term secondTerm,
+            Term thirdTerm,
+            int availableTerms,
+            int secondFlag,
+            int thirdFlag,
+            HexaStoreSearchTree<Integer> tree) {
+        
+        List<Substitution> res = new ArrayList<>();
+        
+        if ((availableTerms & secondFlag) != 0) {
+            
+            int convertedSecondTerm = convertedTerms.get(secondTerm.label());
+            addSubstitutions(tree.get(knownTerm).get(convertedSecondTerm), thirdTerm, res);
+        } else if ((availableTerms & thirdFlag) != 0) {
+            int convertedThirdTerm = convertedTerms.get(thirdTerm.label());
+            addSubstitutions(tree.get(knownTerm).get(convertedThirdTerm), secondTerm, res);
+        } else {
+            addAllSubstitutions(tree.get(knownTerm), secondTerm, thirdTerm, res);
+        }
+        
+        return res.iterator();
+    }
+
+    private Iterator<Substitution> matchWithSubject(RDFAtom atom, int availableTerms, HexaStoreSearchTree<Integer> tree) {
         int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-        List<Substitution> res = new ArrayList<>();
-
-        if ((state & OBJECT_IS_PRESENT) != 0) {
-            int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-            addSubstitutions(tree.get(convertedSubject).get(convertedObject), atom.getTriplePredicate(), res);
-        } else if ((state & PREDICAT_IS_PRESENT) != 0) {
-            int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
-            addSubstitutions(tree.get(convertedSubject).get(convertedPredicate), atom.getTripleObject(), res);
-        } else {
-            addAllSubstitutions(tree.get(convertedSubject), atom.getTriplePredicate(), atom.getTripleObject(), res);
-        }
-
-        return res.iterator();
+        return matchWithKnownTerm(
+            convertedSubject,
+            atom.getTripleObject(),
+            atom.getTriplePredicate(),
+            availableTerms,
+            OBJECT_IS_PRESENT,
+            PREDICAT_IS_PRESENT,
+            tree
+        );
     }
 
-    private Iterator<Substitution> matchWithPredicate(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
+    private Iterator<Substitution> matchWithPredicate(RDFAtom atom, int availableTerms, HexaStoreSearchTree<Integer> tree) {
         int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
-        List<Substitution> res = new ArrayList<>();
-
-        if ((state & SUBJECT_IS_PRESENT) != 0) {
-            int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-            addSubstitutions(tree.get(convertedPredicate).get(convertedSubject), atom.getTripleObject(), res);
-        } else if ((state & OBJECT_IS_PRESENT) != 0) {
-            int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-            addSubstitutions(tree.get(convertedPredicate).get(convertedObject), atom.getTripleSubject(), res);
-        } else {
-            addAllSubstitutions(tree.get(convertedPredicate), atom.getTripleSubject(), atom.getTripleObject(), res);
-        }
-
-        return res.iterator();
+        return matchWithKnownTerm(
+            convertedPredicate,
+            atom.getTripleSubject(),
+            atom.getTripleObject(),
+            availableTerms,
+            SUBJECT_IS_PRESENT,
+            OBJECT_IS_PRESENT,
+            tree
+        );
     }
 
-    private Iterator<Substitution> matchWithObject(RDFAtom atom, int state, HexaStoreSearchTree<Integer> tree) {
+    private Iterator<Substitution> matchWithObject(RDFAtom atom, int availableTerms, HexaStoreSearchTree<Integer> tree) {
         int convertedObject = convertedTerms.get(atom.getTripleObject().label());
-        List<Substitution> res = new ArrayList<>();
-
-        if ((state & SUBJECT_IS_PRESENT) != 0) {
-            int convertedSubject = convertedTerms.get(atom.getTripleSubject().label());
-            addSubstitutions(tree.get(convertedObject).get(convertedSubject), atom.getTriplePredicate(), res);
-        } else if ((state & PREDICAT_IS_PRESENT) != 0) {
-            int convertedPredicate = convertedTerms.get(atom.getTriplePredicate().label());
-            addSubstitutions(tree.get(convertedObject).get(convertedPredicate), atom.getTripleSubject(), res);
-        } else {
-            addAllSubstitutions(tree.get(convertedObject), atom.getTriplePredicate(), atom.getTripleObject(), res);
-        }
-
-        return res.iterator();
+        return matchWithKnownTerm(
+            convertedObject,
+            atom.getTripleSubject(),
+            atom.getTriplePredicate(),
+            availableTerms,
+            SUBJECT_IS_PRESENT,
+            PREDICAT_IS_PRESENT,
+            tree
+        );
     }
 
 
