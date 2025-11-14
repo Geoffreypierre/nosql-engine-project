@@ -11,7 +11,6 @@ import java.util.List;
 import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.rdf4j.rio.RDFFormat;
 
-import fr.boreal.model.logicalElements.api.Atom;
 import fr.boreal.model.logicalElements.api.Substitution;
 import fr.boreal.model.logicalElements.api.Term;
 import qengine.model.RDFAtom;
@@ -19,6 +18,7 @@ import qengine.model.StarQuery;
 import qengine.parser.RDFAtomParser;
 import qengine.util.BigTableMatchIterator;
 import qengine.util.Globals;
+import qengine.util.TermEncoder;
 
 /**
  * Implémentation d'un HexaStore pour stocker des RDFAtom.
@@ -30,8 +30,10 @@ import qengine.util.Globals;
  */
 public class RDFBigTableStore implements RDFStorage {
 
-    private final List<RDFAtom> rdfAtoms = new ArrayList<>();
-
+    private final List<Integer> rdfAtomsSubject = new ArrayList<>();
+    private final List<Integer> rdfAtomsPredicate = new ArrayList<>();
+    private final List<Integer> rdfAtomsObject = new ArrayList<>();
+    private TermEncoder termEncoder = new TermEncoder();
 
     public int getAvailableTerms(RDFAtom atom) {
 
@@ -65,18 +67,21 @@ public class RDFBigTableStore implements RDFStorage {
 
     @Override
     public boolean add(RDFAtom atom) {
-        rdfAtoms.add(atom);
+        rdfAtomsSubject.add(termEncoder.encode((atom.getTripleSubject())));
+        rdfAtomsPredicate.add(termEncoder.encode((atom.getTriplePredicate())));
+        rdfAtomsObject.add(termEncoder.encode((atom.getTripleObject())));
         return true;
     }
 
     @Override
     public long size() {
-        return rdfAtoms.size();
+        return rdfAtomsPredicate.size();
     }
 
     @Override
     public Iterator<Substitution> match(RDFAtom atom) {
-        return new BigTableMatchIterator(atom, rdfAtoms, getAvailableTerms(atom));
+        return new BigTableMatchIterator(atom, getAvailableTerms(atom), termEncoder,
+                                         rdfAtomsSubject, rdfAtomsPredicate, rdfAtomsObject);
     }
 
     @Override
@@ -86,8 +91,8 @@ public class RDFBigTableStore implements RDFStorage {
     }
 
     @Override
-    public Collection<Atom> getAtoms() {
-        return Collections.unmodifiableCollection(rdfAtoms);
+    public Collection<Integer> getAtoms() {
+        return Collections.unmodifiableCollection(rdfAtomsSubject);
     }
 
 }

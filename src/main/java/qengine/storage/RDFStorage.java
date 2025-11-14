@@ -4,8 +4,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-import fr.boreal.model.logicalElements.api.Atom;
 import fr.boreal.model.logicalElements.api.Substitution;
+import fr.boreal.model.logicalElements.api.Term;
 import qengine.model.RDFAtom;
 import qengine.model.StarQuery;
 
@@ -49,7 +49,8 @@ public interface RDFStorage {
      *
      * @return une collection d'atomes
      */
-    Collection<Atom> getAtoms();
+
+    Collection<Integer> getAtoms();
 
     /**
      * Ajoute des RDFAtom dans le store.

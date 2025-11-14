@@ -290,8 +290,8 @@ public class RDFHexaStore implements RDFStorage {
     }
 
     @Override
-    public Collection<Atom> getAtoms() {
-        Collection<Atom> res = new ArrayList<>();
+    public Collection<Integer> getAtoms() {
+        Collection<Integer> res = new ArrayList<>();
         for (var entry : S_P_O.entrySet()) {
             var subject = termEncoder.decode(entry.getKey());
             for (var predicateEntry : entry.getValue().entrySet()) {
